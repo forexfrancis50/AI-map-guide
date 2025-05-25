@@ -1,0 +1,1247 @@
+
+/* Global reset and base font styles */
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell,
+    'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Prevent body scrollbars */
+}
+
+/* Styles for the main map container which holds the map and other UI elements */
+.map-container {
+  color: black;
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  transition: width 0.3s ease, left 0.3s ease;
+  overflow: hidden;
+}
+
+/* Style applied when the timeline panel is visible on larger screens, shifting the map */
+.map-container-shifted, .map-container-shifted-chat { /* Added chat shift */
+  width: calc(100% - 320px); /* Default shift for timeline */
+  left: 0;
+}
+.map-container-shifted-chat.map-container-shifted { /* Both timeline and chat open */
+ width: calc(100% - 640px);
+}
+
+
+/* The div where the Google Map will be rendered */
+#map {
+  height: 100%;
+  width: 100%;
+  background-color: #e0e0e0; /* Placeholder background */
+}
+
+/* New: Styles for Street View Panorama container */
+#street-view-pano {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 5; /* Above map, below other UI overlays */
+  display: none; /* Initially hidden */
+}
+
+
+/* Styles for the Day Planner Mode Toggle Switch */
+.controls-toggles {
+  display: flex;
+  gap: 10px; /* Space between toggles */
+  margin-bottom: 12px;
+  justify-content: center; /* Center toggles if they are few */
+  flex-wrap: wrap; /* Allow toggles to wrap on smaller screens if needed */
+}
+
+.mode-toggle {
+  display: flex;
+  align-items: center;
+  padding: 4px 12px 4px 4px;
+  background: rgba(0, 0, 0, .25);
+  width: max-content;
+  border-radius: 100px;
+}
+
+.mode-label {
+  margin-left: 10px;
+  font-size: 14px;
+  color: white;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  font-weight: 500;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 46px;
+  height: 24px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.5);
+  transition: .4s;
+  backdrop-filter: blur(4px);
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background-color: #2196F3;
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px #2196F3;
+}
+
+input:checked + .slider:before {
+  transform: translateX(22px);
+}
+
+.slider.round {
+  border-radius: 34px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+/* Styles for the timeline panel used in Day Planner mode */
+.timeline-container {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 320px;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(10px);
+  box-shadow: -2px 0 15px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  overflow: hidden;
+  display: none;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+}
+
+.timeline-container.visible {
+  transform: translateX(0);
+  display: block;
+}
+
+
+/* Styles for the header within the timeline panel */
+.timeline-header {
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #eeeeee;
+  position: sticky;
+  top: 0;
+  background-color: white; /* Ensure header is opaque */
+  z-index: 2;
+}
+
+.timeline-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.timeline-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.export-button, .close-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: #666;
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.export-button i, .close-button i {
+  margin-right: 6px;
+}
+
+
+.export-button:hover, .close-button:hover {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+/* Container for individual timeline entries */
+.timeline {
+  padding: 0 16px 16px;
+  overflow-y: auto;
+  height: calc(100% - 64px); /* Adjust based on header height */
+}
+
+/* Button to toggle the timeline panel visibility on smaller screens */
+.timeline-toggle {
+  position: absolute;
+  top: 50%;
+  left: -40px;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  background-color: white;
+  border-radius: 8px 0 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+  border: none;
+  border-right: none;
+  display: none;
+  z-index: 1;
+}
+
+/* Semi-transparent overlay shown behind panels on mobile */
+.map-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 999; /* Below panels but above map and most UI */
+  display: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.map-overlay.visible {
+  display: block;
+  opacity: 1;
+}
+
+/* Individual item within the timeline */
+.timeline-item {
+  display: flex;
+  margin: 16px 0;
+  position: relative;
+}
+
+.timeline-time {
+  flex: 0 0 80px;
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+  text-align: right;
+  padding-right: 16px;
+  padding-top: 2px;
+}
+
+.timeline-connector {
+  flex: 0 0 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.timeline-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: #2196F3;
+  z-index: 1;
+  margin-top: 4px;
+}
+
+.timeline-line {
+  width: 2px;
+  flex-grow: 1;
+  background-color: #d1d1d1;
+  position: absolute;
+  top: 16px;
+  bottom: -16px;
+  left: calc(80px + 9px);
+  z-index: 0;
+}
+
+
+.timeline-item:last-child .timeline-line {
+  display: none;
+}
+
+.timeline-content {
+  flex: 1;
+  background-color: white;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid #eee;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.timeline-content:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.timeline-content.active {
+  border-left: 3px solid #2196F3;
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+}
+
+
+.timeline-title {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 4px;
+  color: #333;
+}
+
+.timeline-description {
+  font-size: 12px;
+  color: #666;
+  line-height: 1.4;
+}
+
+.timeline-duration {
+  display: inline-block;
+  font-size: 11px;
+  color: #2196F3;
+  background-color: #e3f2fd;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-top: 8px;
+  font-weight: 500;
+}
+
+.location-card.day-planner-card {
+  position: relative;
+}
+
+.card-time-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  z-index: 2;
+}
+
+.card-sequence-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background-color: #2196F3;
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  z-index: 2;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.card-duration {
+  display: inline-block;
+  font-size: 11px;
+  color: #2196F3;
+  background-color: #e3f2fd;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-top: 4px;
+}
+
+.day-plan-route {
+  stroke: #2196F3;
+  stroke-width: 4;
+  stroke-opacity: 0.8;
+  stroke-dasharray: 5, 5;
+  animation: dash 20s linear infinite;
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: 1000;
+  }
+}
+
+.search-container {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  width: 90%;
+  max-width: 600px;
+  transition: top 0.3s ease, left 0.3s ease, transform 0.3s ease, width 0.3s ease;
+}
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  background-color: white;
+  border-radius: 24px;
+  padding: 8px 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  transition: box-shadow 0.3s;
+}
+
+.search-bar:focus-within {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.search-icon {
+  color: #717171;
+  margin-right: 12px;
+}
+
+#prompt-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 16px;
+  resize: none;
+  height: 24px;
+  max-height: 72px;
+  line-height: 24px;
+  background: transparent;
+  color: black;
+  overflow-y: auto;
+}
+
+
+.search-button {
+  background-color: #282828;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-left: 12px;
+  transition: background-color 0.2s;
+  position: relative;
+  flex-shrink: 0;
+}
+
+
+.search-button:hover {
+  background-color: #1a1a1a;
+}
+
+.search-button.loading {
+  pointer-events: none;
+  background-color: #5b5b5b;
+}
+
+.search-button .fa-arrow-right {
+  transition: opacity 0.2s;
+}
+
+.search-button.loading .fa-arrow-right {
+  opacity: 0;
+}
+
+.search-button .spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 0.8s linear infinite;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.search-button.loading .spinner {
+  opacity: 1;
+}
+
+@keyframes spin {
+  0% { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.card-carousel {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10; /* Above map, below search in some cases */
+  width: 90%;
+  max-width: 900px;
+  display: none;
+  transition: width 0.3s ease, left 0.3s ease, top 0.3s ease, bottom 0.3s ease, height 0.3s ease, transform 0.3s ease;
+}
+
+.map-container-shifted .search-container,
+.map-container-shifted-chat .search-container {
+    left: calc(50% - 160px / 2); /* Adjust for one panel */
+}
+.map-container-shifted-chat.map-container-shifted .search-container {
+    left: calc(50% - 320px / 2); /* Adjust for two panels */
+}
+
+
+.map-container-shifted .card-carousel,
+.map-container-shifted-chat .card-carousel {
+  width: 90%;
+  max-width: calc(900px - 160px);
+  left: calc(50% - 160px / 2);
+}
+.map-container-shifted-chat.map-container-shifted .card-carousel {
+  max-width: calc(900px - 320px);
+  left: calc(50% - 320px / 2);
+}
+
+
+.card-container {
+  display: flex;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  padding: 12px;
+  border-radius: 16px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0%, black 5%, black 95%, transparent 100%);
+  transition: flex-direction 0s .15s;
+}
+
+.card-container::-webkit-scrollbar {
+  display: none;
+}
+
+.location-card {
+  flex: 0 0 auto;
+  width: 240px; /* Slightly wider to accommodate new info */
+  background-color: rgba(255, 255, 255, 0.75); /* More opaque for readability */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 12px;
+  margin-right: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s, border 0.2s, width 0.3s ease, margin-right 0.3s ease, margin-bottom 0.3s ease;
+  position: relative;
+  border: 2px solid transparent;
+}
+
+
+.location-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.14);
+}
+
+.card-active {
+  border: 2px solid #2196F3;
+  box-shadow: 0 6px 16px rgba(33, 150, 243, 0.3);
+}
+
+
+.card-image {
+  height: 120px;
+  background-color: #f5f5f5;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  transition: transform 0.3s ease;
+}
+
+.location-card:hover .card-image {
+  transform: scale(1.05);
+}
+
+.card-image::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(to top, rgba(0,0,0,0.5), transparent);
+}
+
+.card-content {
+  padding: 12px;
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #222222;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-description {
+  font-size: 12px;
+  color: #717171;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.3;
+  min-height: calc(1.3em * 2);
+}
+
+.card-coordinates {
+  font-size: 10px;
+  color: #999;
+  margin-top: 6px;
+  margin-bottom: 8px;
+}
+
+/* Styles for Weather and Events on cards */
+.card-weather {
+  font-size: 11px;
+  color: #555;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+}
+.card-weather i {
+  margin-right: 5px;
+  font-size: 13px; /* Make icon slightly larger */
+}
+
+.card-events {
+  font-size: 11px;
+  color: #555;
+  margin-bottom: 6px;
+}
+.card-events strong {
+  color: #333;
+}
+.card-events ul {
+  list-style-type: disc;
+  padding-left: 15px;
+  margin-top: 2px;
+  margin-bottom: 0;
+}
+.card-events li {
+  margin-bottom: 2px;
+}
+
+
+.card-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px; /* Add some space above buttons */
+}
+
+.street-view-button,
+.route-preview-button {
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+  width: 100%; 
+}
+.street-view-button i,
+.route-preview-button i {
+  margin-right: 6px;
+}
+
+.street-view-button {
+  background-color: #4285F4;
+}
+.street-view-button:hover {
+  background-color: #357ae8;
+}
+
+.route-preview-button {
+  background-color: #009688;
+}
+.route-preview-button:hover {
+  background-color: #00796b;
+}
+.route-preview-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+
+.carousel-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 16px;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.carousel-arrow {
+  background-color: white;
+  border: 1px solid #DDDDDD;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #222222;
+  transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+.carousel-arrow:hover {
+  background-color: #F7F7F7;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.carousel-indicators {
+  display: flex;
+  margin: 0 16px;
+}
+
+.carousel-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #DDDDDD;
+  margin: 0 4px;
+  transition: background-color 0.2s;
+}
+
+.carousel-dot.active {
+  background-color: #222222;
+}
+
+.reset-button {
+  color: black;
+  position: absolute;
+  bottom: 32px;
+  left: 16px;
+  z-index: 10; /* Above map, may be covered by cards in SV mode */
+  background-color: white;
+  border: 1px solid #DDDDDD;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.2s, box-shadow 0.2s, left 0.3s ease, bottom 0.3s ease;
+}
+
+.reset-button:hover {
+  background-color: #F7F7F7;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.close-street-view-button {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 20; /* Above Street View, below timeline/chat if they overlap */
+  background-color: rgba(255, 255, 255, 0.9);
+  border: 1px solid #ccc;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  font-size: 18px;
+  color: #333;
+  transition: background-color 0.2s;
+}
+.close-street-view-button:hover {
+  background-color: #f0f0f0;
+}
+
+.search-container.street-view-active {
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.card-carousel.street-view-active {
+  top: 100px;
+  left: 16px;
+  bottom: auto;
+  width: 250px; /* Slightly wider for new card info */
+  height: calc(100vh - 100px - 32px);
+  transform: translateX(0);
+  z-index: 15; /* Ensure cards are above map, potentially above reset in some layouts */
+}
+
+.card-carousel.street-view-active .card-container {
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: 100%;
+  padding: 12px;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10px, black calc(100% - 22px), transparent calc(100% - 0px));
+  mask-image: linear-gradient(to bottom, transparent 0%, black 10px, black calc(100% - 22px), transparent calc(100% - 0px));
+}
+
+.card-carousel.street-view-active .location-card {
+  width: 100%;
+  margin-right: 0;
+  margin-left: 0;
+  margin-bottom: 12px;
+}
+
+.card-carousel.street-view-active .carousel-controls {
+  display: none;
+}
+
+.reset-button.street-view-active {
+  left: auto;
+  right: 16px;
+  bottom: 32px; 
+  z-index: 20; /* Ensure reset is accessible if cards are on left */
+}
+
+/* Chat Feature Styles */
+.chat-toggle-fab {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  background-color: #2196F3;
+  color: white;
+  border-radius: 50%;
+  border: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  cursor: pointer;
+  z-index: 1005; /* Above most elements, but below modals if any */
+  transition: transform 0.2s ease-in-out;
+}
+.chat-toggle-fab:hover {
+  transform: scale(1.1);
+}
+
+.chat-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 320px;
+  height: 100%;
+  background-color: #f9f9f9;
+  box-shadow: -2px 0 15px rgba(0, 0, 0, 0.15);
+  z-index: 1000; /* Same as timeline, potentially adjust if both can be open */
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+}
+
+.chat-panel.visible {
+  transform: translateX(0);
+}
+
+.chat-header {
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #fff;
+}
+.chat-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.chat-messages {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chat-message {
+  padding: 10px 14px;
+  border-radius: 18px;
+  max-width: 90%; /* Adjusted max-width for system messages that might be wider */
+  line-height: 1.4;
+  font-size: 14px;
+  word-wrap: break-word;
+}
+
+.chat-message.user {
+  background-color: #2196F3;
+  color: white;
+  align-self: flex-end;
+  border-bottom-right-radius: 4px;
+}
+
+.chat-message.ai {
+  background-color: #e0e0e0;
+  color: #333;
+  align-self: flex-start;
+  border-bottom-left-radius: 4px;
+}
+.chat-message.system {
+  background-color: #fffbcc;
+  color: #7a7000;
+  align-self: stretch; /* Make system messages take full width if needed */
+  text-align: left; /* Usually better for lists */
+  font-size: 13px; /* Slightly larger for readability of lists */
+  border-radius: 8px;
+  padding: 12px;
+}
+.chat-message.system ul {
+  list-style-position: inside;
+  padding-left: 0;
+  margin-top: 5px;
+}
+.chat-message.system li {
+  margin-bottom: 5px;
+}
+.chat-message.system a, .clickable-history-item, .clickable-recommendation-item {
+  color: #007bff;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.chat-message.system a:hover, .clickable-history-item:hover, .clickable-recommendation-item:hover {
+  color: #0056b3;
+}
+
+
+.chat-input-area {
+  padding: 12px;
+  border-top: 1px solid #e0e0e0;
+  background-color: #fff;
+  display: flex;
+  flex-direction: column; 
+  gap: 8px;
+}
+.ai-route-controls {
+  display: none; /* Hidden by default */
+  gap: 8px;
+  /* margin-bottom: 8px; */ /* Space handled by main gap */
+}
+.ai-route-controls.visible {
+  display: flex;
+}
+
+.chat-control-button, .chat-util-button {
+  flex-grow: 1;
+  padding: 8px 10px;
+  font-size: 13px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #f0f0f0;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.chat-control-button:hover, .chat-util-button:hover {
+  background-color: #e0e0e0;
+}
+.chat-control-button i, .chat-util-button i {
+  margin-right: 5px;
+}
+#resume-ai-route { display: none; } /* Initially hidden if pause is default */
+
+.chat-utility-buttons {
+    display: flex;
+    gap: 8px;
+    /* margin-bottom: 8px; */ /* Space handled by main gap */
+}
+
+.chat-input-container {
+ display: flex;
+ gap: 8px;
+ align-items: flex-end; /* Align items to bottom for textarea grow */
+}
+
+#chat-input {
+  flex-grow: 1;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  resize: none;
+  font-size: 14px;
+  min-height: 40px; /* for a single line with padding */
+  max-height: 80px; /* approx 3 lines */
+  line-height: 1.4;
+}
+
+.send-chat-button {
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+}
+.send-chat-button:hover {
+  background-color: #1976D2;
+}
+
+/* Styles for Recommendations in Chat */
+.recommendations-container {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.recommendation-item {
+  background-color: #f0f8ff; /* Light blue background */
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #cfe2f3;
+}
+.recommendation-item h4 {
+  margin-top: 0;
+  margin-bottom: 5px;
+  color: #0056b3;
+}
+.recommendation-item p {
+  margin-bottom: 5px;
+  font-size: 0.9em;
+}
+.recommendation-item button {
+  background-color: #5cb85c;
+  color: white;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  cursor: pointer;
+  margin-top: 5px;
+}
+.recommendation-item button:hover {
+  background-color: #4cae4c;
+}
+
+
+@media (max-width: 768px) {
+  .controls-toggles {
+    flex-direction: column;
+    align-items: center;
+  }
+  .search-container {
+    width: 90%;
+    max-width: none;
+  }
+
+  .location-card {
+    width: 200px; /* Adjust if needed for mobile */
+  }
+  .card-carousel.street-view-active .location-card {
+     width: 100%;
+  }
+
+
+  .card-image {
+    height: 100px;
+  }
+
+  .timeline-container, .chat-panel {
+    width: 85%;
+  }
+
+
+  .map-container-shifted, .map-container-shifted-chat {
+    width: 100%;
+    left: 0;
+  }
+  .map-container-shifted-chat.map-container-shifted {
+     width: 100%; /* On mobile, panels overlay, map doesn't shrink twice */
+  }
+
+
+  .map-container-shifted .search-container,
+  .map-container-shifted-chat .search-container {
+    left: 50%;
+    width: 90%;
+  }
+
+  .map-container-shifted .card-carousel:not(.street-view-active),
+  .map-container-shifted-chat .card-carousel:not(.street-view-active) {
+    width: 90%;
+    max-width: none;
+    left: 50%;
+  }
+
+
+  .timeline-toggle {
+    display: flex;
+  }
+
+  .close-street-view-button {
+    top: 70px;
+    right: 10px;
+  }
+
+  .card-carousel.street-view-active {
+    width: 220px; /* Adjust if needed */
+    top: 130px;
+    height: calc(100vh - 130px - 20px);
+  }
+
+  .chat-toggle-fab {
+    bottom: 16px;
+    right: 16px;
+  }
+}
+
+.popup-container {
+  background: white;
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  font-size: 14px;
+  max-width: 250px;
+  border: 1px solid #ccc;
+  z-index: 6; /* Above map features, potentially below street view UI elements */
+}
+.popup-container b {
+  font-size: 15px;
+  color: #333;
+}
+
+.popup-active {
+  border-left: 3px solid #2196F3;
+}
+
+/* Custom Pin Glyph */
+.pin-glyph {
+  background-color: #EA4335; /* Google Red */
+  color: white;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  border: 1px solid white;
+}
+
+
+.spinner {
+  pointer-events: none;
+  opacity: 1;
+  position: absolute;
+  left: calc(50% - 25px);
+  top: calc(50% - 25px);
+  width: 50px;
+  height: 50px;
+  border: 5px solid rgba(0, 0, 0, 0.1);
+  border-top-color: #3498db;
+  border-radius: 50%;
+  animation: spinGlobal 1s linear infinite;
+  transition: opacity 0.3s ease-in-out;
+  z-index: 1001; /* Above most things, but below modals if any */
+
+  &.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+.error {
+  color: red;
+  padding: 0.5em 0;
+  text-align: center;
+  font-size: 14px;
+  background-color: rgba(255, 230, 230, 0.9);
+  border-radius: 4px;
+  margin-top: 8px;
+}
+
+@keyframes spinGlobal {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
